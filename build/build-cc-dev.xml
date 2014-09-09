@@ -1,0 +1,23 @@
+<project name="build-cc" default="commit" basedir="../">
+	<echo>${basedir}</echo>
+	<property file="build/build.properties" />
+	<buildnumber file="build/build.num" />
+
+	<tstamp>
+		<format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+	</tstamp>
+
+	<property name="src" value="src" />
+	
+	<replace file="${src}/br/com/adp/adpr/test/Main.java" token="@build_date@" value="${TODAY}"/>
+	<replace file="${src}/br/com/adp/adpr/test/Main.java" token="@build_number@" value="${major.number}.${minor.number}.${build.number}"/>
+
+	<property name="manifest.implementation.version" value="${major.number}.${minor.number}.0.${build.number}" />
+
+	<target name="build">
+		<ant antfile="build/build-default.xml" target="clean" />
+	</target>
+
+	<target name="commit" depends="build" />
+
+</project>

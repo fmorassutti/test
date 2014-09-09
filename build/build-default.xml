@@ -1,0 +1,60 @@
+<project name="ADPR Test Engine" default="clean" basedir="../">
+
+	<echo>${java.home}</echo>
+	<echo>${java.version}</echo>
+	<echo>${java.vendor}</echo>
+
+	<!-- set global properties for this build -->
+	<tstamp>
+		<format property="TODAY" pattern="yyyy-MM-dd HH:mm:ss" />
+	</tstamp>
+
+	<property name="dist" value="dist" />
+	<property name="bin" value="bin1" />
+	<property name="src" value="src" />
+	<property name="lib" value="lib" />
+	<property name="manifest" value="build/META-INF/MANIFEST.MF" />
+
+	<manifest file="${manifest}">
+		<attribute name="Created-By" value="ADPR Dev Team" />
+		<attribute name="Built-Date" value="${TODAY}" />
+		<attribute name="Specification-Title" value="Test Engine" />
+		<attribute name="Specification-Vendor" value="Automatic Data Processing, Inc." />
+		<attribute name="Implementation-Title" value="ADPR Test Engine" />
+		<attribute name="Implementation-Version" value="${manifest.implementation.version}" />
+		<attribute name="Implementation-Vendor" value="Automatic Data Processing, Inc." />
+		<attribute name="Main-Class" value="br.com.adp.test.Main" />
+		<attribute name="Class-Path" value=". lib/commons-collections-3.2.1.jar lib/commons-lang-2.6.jar lib/log4j-1.2.16.jar lib/xmlpull-1.1.3.1.jar lib/xstream-1.4.2.jar	lib/commons-io-2.3.jar lib/kxml2-min-2.3.0.jar lib/ojdbc6.jar lib/xpp3_min-1.1.4c.jar" />
+	</manifest>
+
+	<path id="project.class.path">
+		<pathelement location="${bin}" />
+		<fileset dir="${lib}">
+			<include name="**/*.jar" />
+		</fileset>
+	</path>
+
+	<target name="init">
+		<delete dir="${bin}" />
+		<mkdir dir="${bin}" />
+
+		<mkdir dir="${dist}" />
+	</target>
+
+	<target name="compile" depends="init">
+		<javac classpathref="project.class.path" debug="true" destdir="${bin}"
+			srcdir="${src}" failonerror="true" />
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar jarfile="${dist}/test.jar" basedir="${bin}" manifest="${manifest}" />
+	</target>
+
+	<target name="clean" depends="jar">
+		<delete dir="${bin}" />
+		<delete dir="${instrumented.dir}" />
+		<delete file="${basedir}/cobertura.ser" />
+		<delete dir="${bin.tests}" />
+	</target>
+
+</project>
