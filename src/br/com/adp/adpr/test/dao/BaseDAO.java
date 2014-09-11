@@ -13,34 +13,20 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import br.com.adp.adpr.test.exception.ConnectionError;
 import br.com.adp.adpr.test.util.AppLogger;
-import br.com.adp.adpr.test.util.ConnectionHelper;
+import br.com.adp.adpr.test.util.MySqlConnectionHelper;
 import br.com.adp.adpr.test.util.RsHelper;
-import br.com.adp.adpr.test.util.StatementHelper;
 import br.com.adp.adpr.test.util.TimeKeeper;
 
-
-/**
- * @author $Author: rossetto $
- * @version $Id: BaseDAO.java,v 1.13.2.2 2013/08/14 21:29:21 rossetto Exp $
- */
 public class BaseDAO {
 
 	protected static final String HEADER = "/* FACADE=BaseDAO EP=Test DAO={dao} DAOSQL={operation} */";
 
-	protected static final String SEMI_JOIN_CHOOSE = "choose";
-
-	protected static final String SEMI_JOIN_OFF = "off";
-
 	protected transient Connection connection;
-
-	private transient final Map<String, PreparedStatement> baseDAOStatements = new HashMap<String, PreparedStatement>();
 
 	protected final Logger LOG = AppLogger.getLogger();
 
@@ -66,7 +52,8 @@ public class BaseDAO {
 
 	private void init() {
 		try {
-			this.connection = ConnectionHelper.getConnection();
+			MySqlConnectionHelper helper = new MySqlConnectionHelper();
+			this.connection = helper.getConnection();
 		} catch (final ConnectionError e) {
 			this.LOG.error(e.getMessage(), e);
 		}
@@ -98,14 +85,14 @@ public class BaseDAO {
 		sql.append(this.formatHeader(this.getClass().getSimpleName(), "retrieveAppVersionFromDB"));
 
 		/* Build the query */
-		sql.append("select dbv_phpversion from (select dbv_phpversion from admdbversion dbv order by dbv.dbv_phpversion desc) where rownum = 1 ");
+		sql.append("select version from version order by date desc limit 1");
 
 		this.LOG.debug(sql.toString());
 
-		PreparedStatement pstmt = null; // NOPMD by PesaF on 24/04/12 11:05
-		ResultSet resultSet = null; // NOPMD by PesaF on 24/04/12 11:04
+		PreparedStatement pstmt = null;
+		ResultSet resultSet = null;
 
-		String version = "N/A"; // NOPMD by PesaF on 24/04/12 11:07
+		String version = "N/A";
 
 		try {
 			pstmt = this.connection.prepareStatement(sql.toString());
@@ -117,7 +104,7 @@ public class BaseDAO {
 			this.LOG.debug(TimeKeeper.getElapsedTime(start));
 
 			while (resultSet.next()) {
-				version = RsHelper.retrieveString(resultSet, "dbv_phpversion"); // NOPMD by PesaF on 24/04/12 11:07
+				version = RsHelper.retrieveString(resultSet, "version");
 			}
 
 		} catch (final SQLException e) {
@@ -129,88 +116,6 @@ public class BaseDAO {
 		}
 
 		return version;
-	}
-
-	public String getSequenceValue(final String sequence) throws SQLException {
-		final StringBuilder sql = new StringBuilder();
-
-		/* Build SQL Headers */
-		sql.append(this.formatHeader(this.getClass().getSimpleName(), "getSequenceValue"));
-
-		/* Build the query */
-		sql.append("select " + sequence + " next_val from dual");
-
-		this.LOG.debug(sql.toString());
-
-		PreparedStatement pstmt = null; // NOPMD by PesaF on 24/04/12 11:07
-		ResultSet resultSet = null; // NOPMD by PesaF on 24/04/12 11:05
-
-		String nextVal = null; // NOPMD by PesaF on 24/04/12 11:09
-
-		try {
-			pstmt = this.connection.prepareStatement(sql.toString());
-
-			final long start = TimeKeeper.sysDate();
-
-			resultSet = pstmt.executeQuery();
-
-			this.LOG.debug(TimeKeeper.getElapsedTime(start));
-
-			while (resultSet.next()) {
-				nextVal = RsHelper.retrieveString(resultSet, "next_val"); // NOPMD by PesaF on 24/04/12 11:09
-			}
-
-		} catch (final SQLException e) {
-			this.cleanup(resultSet, pstmt);
-			this.LOG.error(e.getMessage(), e);
-			throw e;
-		} finally {
-			this.cleanup(resultSet, pstmt);
-		}
-
-		return nextVal;
-	}
-
-	/**
-	 * Get a list of sequence values in a single DB call
-	 * 
-	 * @param sequence The name of the sequence from the SequenceHelper
-	 * @param valuesCount The number of values to be generated
-	 * @return The ResultSet with the list of values - IT MUST BE CLOSED BY THE CALLER!
-	 * @throws SQLException
-	 */
-	public ResultSet getSequenceValues(final String sequence, final Integer valuesCount) throws SQLException {
-		final long start = TimeKeeper.sysDate();
-		final String statementName = "getSequenceValues";
-		ResultSet resultSet = null; // NOPMD by PesaF on 24/04/12 11:05
-
-		/* Get the statement from the object cache */
-		PreparedStatement pstmt = this.baseDAOStatements.get(statementName);
-
-		if (pstmt == null) {
-			this.LOG.debug("Creating the prepared statement: " + statementName);
-			/* Build SQL Headers */
-			final StringBuilder sql = new StringBuilder();
-			sql.append(this.formatHeader(this.getClass().getSimpleName(), statementName));
-			/* Build the query */
-			sql.append("select seqvalue.column_value seqval from table(pkg_migrationengine.get_sequence_values(?,?)) seqvalue");
-			this.LOG.debug(sql.toString());
-			/* Create the statement */
-			pstmt = this.connection.prepareStatement(sql.toString());
-			this.baseDAOStatements.put(statementName, pstmt);
-		}
-
-		try {
-			StatementHelper.setString(pstmt, 1, sequence);
-			StatementHelper.setInteger(pstmt, 2, valuesCount);
-			resultSet = pstmt.executeQuery();
-		} catch (final SQLException e) {
-			this.LOG.error(e.getMessage(), e);
-			throw e;
-		}
-
-		this.LOG.debug(TimeKeeper.getElapsedTime(start));
-		return resultSet;
 	}
 
 	public void beginTransaction() throws SQLException {

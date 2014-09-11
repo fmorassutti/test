@@ -2,16 +2,16 @@ package br.com.adp.adpr.test;
 
 import java.security.InvalidParameterException;
 import java.sql.SQLException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import br.com.adp.adpr.test.bo.ClientBO;
 import br.com.adp.adpr.test.dao.BaseDAO;
+import br.com.adp.adpr.test.dao.UserDAO;
 import br.com.adp.adpr.test.db.ConnectionException;
-import br.com.adp.adpr.test.model.Client;
+import br.com.adp.adpr.test.model.User;
 import br.com.adp.adpr.test.util.AppLogger;
 
 public class Main {
@@ -41,7 +41,7 @@ public class Main {
 
 				logger.info("Version from database: " + version);
 
-				showClients();
+				showUsers();
 
 			} else {
 				logger.info("Wrong parameters");
@@ -56,35 +56,33 @@ public class Main {
 		}
 	}
 
-	protected static void showClients() throws SQLException {
-		Map<String, Client> clientsList = new HashMap<String, Client>();
+	protected static void showUsers() throws SQLException {
+		Map<Integer, User> usersList = new LinkedHashMap<Integer, User>();
 
 		try {
-			final ClientBO clientBO = new ClientBO();
-			clientsList = clientBO.getClientsList();
+			final UserDAO userDAO = new UserDAO();
+			usersList = userDAO.getUsersList();
 		} catch (final SQLException e) {
 			logger.error(e.getMessage());
 			throw e;
 		}
 
-		final Iterator<String> clientKeys = clientsList.keySet().iterator();
+		final Iterator<Integer> userKeys = usersList.keySet().iterator();
 
-		int i = 1;
-		while (clientKeys.hasNext()) {
+		while (userKeys.hasNext()) {
 			try {
 
-				final String key = clientKeys.next();
-				final Client client = clientsList.get(key);
+				final Integer key = userKeys.next();
+				final User user = usersList.get(key);
 
-				logger.info("Client " + client.getId() + " loaded" + " - " + i);
-				i++;
+				logger.info("User " + user.getId() + " - " + user.getName() + " loaded");
 			} catch (final Exception e) {
 				logger.error(e.getMessage());
 				throw e;
 			}
 		}
 
-		logger.info("Total of " + clientsList.size() + " clients");
+		logger.info("Total of " + usersList.size() + " users");
 	}
 
 }
